@@ -943,6 +943,7 @@ export const createAdapter =
 				...(adapterInstance.options ?? {}),
 			},
 			id: config.adapterId,
+			pool: adapterInstance.pool,
 
 			// Secretly export values ONLY if this adapter has enabled adapter-test-debug-logs.
 			// This would then be used during our adapter-tests to help print debug logs if a test fails.

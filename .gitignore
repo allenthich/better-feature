@@ -9,7 +9,7 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
-
+**/*claude*
 # Caches
 
 .cache
@@ -185,10 +185,8 @@ dist
 .tsup
 .todo
 
-
 android/
 .expo/
-
 
 .vercel
 .vinxi

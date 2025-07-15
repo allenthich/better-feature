@@ -3,7 +3,7 @@
 	"version": "0.1.0",
 	"private": true,
 	"scripts": {
-		"dev": "tsx --watch --tsconfig tsconfig.json --env-file=.env feature.ts",
+		"dev": "tsx --watch --tsconfig tsconfig.json  feature.ts",
 		"dev:secure": "next dev --experimental-https",
 		"typecheck": "tsc --noEmit",
 		"build": "next build",

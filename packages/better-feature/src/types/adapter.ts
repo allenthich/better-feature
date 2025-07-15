@@ -23,7 +23,7 @@ export type Where = {
 /**
  * Adapter Interface
  */
-export type Adapter = {
+export type Adapter<T = any> = {
 	id: string;
 	create: <T extends Record<string, any>, R = T>(data: {
 		model: string;
@@ -81,6 +81,11 @@ export type Adapter = {
 		file?: string,
 	) => Promise<AdapterSchemaCreation>;
 	options?: Record<string, any>;
+	/**
+	 * The database pool/client instance.
+	 * Provides access to the underlying database client for direct queries.
+	 */
+	pool?: T;
 };
 
 export type AdapterSchemaCreation = {

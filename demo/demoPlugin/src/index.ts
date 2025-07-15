@@ -1,8 +1,6 @@
-import type {
-	BetterFeaturePlugin
-} from "better-feature";
+import type { BetterFeaturePlugin } from "better-feature";
 import { createFeatureEndpoint } from "better-feature/api";
-import z from "zod";
+import { z } from "zod";
 
 import { DataTypes, Model, Sequelize } from "sequelize";
 
@@ -53,118 +51,101 @@ export const defineUserModel = (sequelize: Sequelize): typeof User => {
 
 	return User;
 };
+type sequelizeDatabase = Sequelize & {
+	models: {
+		User: typeof User;
+	};
+};
 
-export const membershipLoginPlugin = (): BetterFeaturePlugin => ({
-	id: "membership",
-	hooks: {
-		before: [
-			{
-				matcher: (context) => {
-					const pool = context.context.options?.context.pool;
-					if (!pool) throw new Error("Database pool not found");
-					db = getModelTypedDb(pool as Sequelize);
-					return true;
+export const membershipLoginPlugin =
+	(): BetterFeaturePlugin<sequelizeDatabase> => ({
+		id: "membership",
+
+		schema: {
+			test: {
+				fields: {
+					membershipId: { type: "string", required: true, unique: true },
+					membershipLevel: { type: "string", required: false },
+					password: {
+						type: "string",
+						required: true,
+						defaultValue: "'1234afsd'",
+					},
+					createdAt: { type: "date", defaultValue: "Sequelize.NOW" },
+					updatedAt: { type: "date", defaultValue: "Sequelize.NOW" },
 				},
-				handler: async (ctx) => {
-					return { context: ctx };
-				},
+				modelName: "test",
 			},
-		],
-		// after: [
-		// 	{
-		// 		matcher: (context) => {
-		// 			console.log(context.body);
-		// 			return context.path === "/membership/login";
-		// 		},
-		// 		handler: async (context) => {
-		// 			console.log("zzzz", context);
-		// 			return (context.context.returned = {
-		// 				...context.context.returned,
-		// 				akash: "this is data",
-		// 			});
-		// 		},
-		// 	},
-		// ],
-	},
-	schema: {
-		test: {
-			fields: {
-				membershipId: { type: "string", required: true, unique: true },
-				membershipLevel: { type: "string", required: false },
-				password: {
-					type: "string",
-					required: true,
-					defaultValue: "'1234afsd'",
-				},
-				createdAt: { type: "date", defaultValue: "Sequelize.NOW" },
-				updatedAt: { type: "date", defaultValue: "Sequelize.NOW" },
-			},
-			modelName: "test",
 		},
-	},
 
-	endpoints: {
-		login: createFeatureEndpoint(
-			"/membership/login",
-			{
-				method: "POST",
-				body: z.object({
-					membershipId: z.string(),
-					password: z.string(),
-				}),
-				response: {
-					token: "string",
-					user: {
-						membershipId: "string",
-						membershipLevel: "string",
+		endpoints: {
+			login: createFeatureEndpoint(
+				"/membership/login",
+				{
+					method: "POST",
+					body: z.object({
+						membershipId: z.string(),
+						password: z.string(),
+					}),
+					response: {
+						token: "string",
+						user: {
+							membershipId: "string",
+							membershipLevel: "string",
+						},
 					},
 				},
-			},
-			async (ctx) => {
-				const { membershipId, password } = ctx.body;
+				withTypedDb(async (ctx, db) => {
+					const { membershipId, password } = ctx.body;
 
-				const database = await db.models.User.findOne({
-					// attributes: ["membershipId"],
-					where: {
-						membershipId: membershipId,
-					},
-				});
+					const database = await db.models.User.findOne({
+						where: {
+							membershipId: membershipId,
+						},
+					});
 
-				if (!database || password !== database.password) {
-					throw new Error("Invalid credentials");
-				}
+					if (!database || password !== database.password) {
+						throw new Error("Invalid credentials");
+					}
 
-				if (
-					membershipId !== database.membershipId ||
-					password !== database.password
-				) {
-					throw new Error("Invalid membershipId or password");
-				}
+					if (
+						membershipId !== database.membershipId ||
+						password !== database.password
+					) {
+						throw new Error("Invalid membershipId or password");
+					}
 
-				const token = "mock-token-123";
+					const token = "mock-token-123";
 
-				return ctx.json({
-					token,
-					user: {
-						membershipId: database.membershipId,
-						membershipLevel: database.membershipLevel,
-					},
-				});
-			},
-		),
+					return ctx.json({
+						token,
+						user: {
+							membershipId: database.membershipId,
+							membershipLevel: database.membershipLevel,
+						},
+					});
+				}),
+			),
 
-		hello: createFeatureEndpoint(
-			"/test",
-			{
-				method: "GET",
-				response: { message: "string" },
-			},
-			async (ctx) => {
-				return ctx.json({ message: "Hello from membership plugin" });
-			},
-		),
-	},
-});
+			hello: createFeatureEndpoint(
+				"/test",
+				{
+					method: "GET",
+					response: { message: "string" },
+				},
+				async (ctx) => {
+					if (
+						ctx.context.options.context?.pool &&
+						"models" in ctx.context.options.context.pool
+					) {
+						const db = ctx.context.options.context.pool;
+						// Access the database pool
+					}
+					return ctx.json({ message: "Hello from membership plugin" });
+				},
+			),
+		},
+	});
 
 let db: Sequelize & {
 	models: {
@@ -177,5 +158,14 @@ const getModelTypedDb = (db: Sequelize) => {
 		models: {
 			User: typeof User;
 		};
+	};
+};
+
+const withTypedDb = <T>(
+	handler: (ctx: any, db: sequelizeDatabase) => Promise<T>,
+) => {
+	return async (ctx: any) => {
+		const db = ctx.context.adapter.pool as sequelizeDatabase;
+		return handler(ctx, db);
 	};
 };

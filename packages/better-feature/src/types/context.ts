@@ -10,6 +10,6 @@ export type HookEndpointContext = EndpointContext<string, any> &
 		headers?: Headers;
 	};
 
-export type GenericEndpointContext = EndpointContext<string, any> & {
-	context: FeatureContext;
+export type GenericEndpointContext<T = any> = EndpointContext<string, any> & {
+	context: FeatureContext<T>;
 };

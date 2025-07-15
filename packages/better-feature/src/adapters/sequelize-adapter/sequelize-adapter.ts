@@ -29,7 +29,9 @@ export interface SequelizeConfig {
 	usePlural?: boolean;
 }
 
-interface SequelizeClient {}
+interface SequelizeClient {
+	[key: string]: any;
+}
 
 interface SequelizeClientInternal {
 	[model: string]: {
@@ -42,8 +44,8 @@ interface SequelizeClientInternal {
 	};
 }
 
-export const sequelizeAdapter = (
-	sequelize: SequelizeClient,
+export const sequelizeAdapter = <T extends SequelizeClient = SequelizeClient>(
+	sequelize: T,
 	config: SequelizeConfig,
 ) =>
 	createAdapter({
@@ -54,7 +56,7 @@ export const sequelizeAdapter = (
 			debugLogs: config.debugLogs ?? false,
 		},
 		adapter: ({ getFieldName }) => {
-			const db = sequelize as SequelizeClientInternal;
+			const db = sequelize as T & SequelizeClientInternal;
 
 			const convertSelect = (select?: string[], model?: string) => {
 				if (!select || !model) return undefined;
@@ -212,6 +214,7 @@ export const sequelizeAdapter = (
 					return result ? (result.count as number) : 0;
 				},
 				options: config,
+				pool: sequelize as T,
 			};
 		},
 	});

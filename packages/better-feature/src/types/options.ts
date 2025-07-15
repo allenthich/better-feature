@@ -13,8 +13,8 @@ import type { FeatureMiddleware } from "../plugins";
 import type { LiteralUnion, OmitId } from "./helper";
 import { Sequelize } from "sequelize";
 
-export type BetterFeatureOptions= {
-	context: {
+export type BetterFeatureOptions<T = any> = {
+	context?: {
 		pool:
 			| Sequelize
 			| MysqlPool
@@ -119,7 +119,7 @@ export type BetterFeatureOptions= {
 	/**
 	 * List of Better Feature plugins
 	 */
-	plugins?: BetterFeaturePlugin[];
+	plugins?: BetterFeaturePlugin<any>[];
 	/**
 	 * List of trusted origins.
 	 */
@@ -340,21 +340,21 @@ export type BetterFeatureOptions= {
 			create?: {
 				before?: (
 					data: Record<string, any>,
-					ctx?: GenericEndpointContext,
+					ctx?: GenericEndpointContext<T>,
 				) => void | Promise<any>;
 				after?: (
 					data: Record<string, any>,
-					ctx?: GenericEndpointContext,
+					ctx?: GenericEndpointContext<T>,
 				) => void | Promise<any>;
 			};
 			update?: {
 				before?: (
 					data: Record<string, any>,
-					ctx?: GenericEndpointContext,
+					ctx?: GenericEndpointContext<T>,
 				) => void | Promise<any>;
 				after?: (
 					data: Record<string, any>,
-					ctx?: GenericEndpointContext,
+					ctx?: GenericEndpointContext<T>,
 				) => void | Promise<any>;
 			};
 		};

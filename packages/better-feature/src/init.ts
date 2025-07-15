@@ -16,10 +16,10 @@ import { getBaseURL } from "./utils/url";
 import type { LiteralUnion } from "./types/helper";
 import { BetterFeatureError } from "./error";
 
-export const init = async (options: BetterFeatureOptions) => {
+export const init = async <T = any>(options: BetterFeatureOptions<T>) => {
 	const adapter = await getAdapter(options);
 	const plugins = options.plugins || [];
-	const internalPlugins = getInternalPlugins(options);
+	const internalPlugins = getInternalPlugins<T>(options);
 	const logger = createLogger(options.logger);
 
 	const baseURL = getBaseURL(options.baseURL, options.basePath);
@@ -56,11 +56,11 @@ export const init = async (options: BetterFeatureOptions) => {
 		return generateId(size);
 	};
 
-	const ctx: FeatureContext = {
+	const ctx: FeatureContext<T> = {
 		appName: options.appName || "Better Feature",
 		options,
 		tables,
-		trustedOrigins: getTrustedOrigins(options),
+		trustedOrigins: getTrustedOrigins<T>(options),
 		baseURL: baseURL || "",
 		secret,
 		rateLimit: {
@@ -92,12 +92,12 @@ export const init = async (options: BetterFeatureOptions) => {
 			await runMigrations();
 		},
 	};
-	let { context } = runPluginInit(ctx);
+	let { context } = runPluginInit<T>(ctx);
 	return context;
 };
 
-export type FeatureContext = {
-	options: BetterFeatureOptions;
+export type FeatureContext<T = any> = {
+	options: BetterFeatureOptions<T>;
 	appName: string;
 	baseURL: string;
 	trustedOrigins: string[];
@@ -107,8 +107,8 @@ export type FeatureContext = {
 		window: number;
 		max: number;
 		storage: "memory" | "database" | "secondary-storage";
-	} & BetterFeatureOptions["rateLimit"];
-	adapter: Adapter;
+	} & BetterFeatureOptions<T>["rateLimit"];
+	adapter: Adapter<T>;
 	internalAdapter: ReturnType<typeof createInternalAdapter>;
 	secret: string;
 	generateId: (options: {
@@ -120,11 +120,11 @@ export type FeatureContext = {
 	runMigrations: () => Promise<void>;
 };
 
-function runPluginInit(ctx: FeatureContext) {
+function runPluginInit<T = any>(ctx: FeatureContext<T>) {
 	let options = ctx.options;
 	const plugins = options.plugins || [];
-	let context: FeatureContext = ctx;
-	const dbHooks: BetterFeatureOptions["databaseHooks"][] = [];
+	let context: FeatureContext<T> = ctx;
+	const dbHooks: BetterFeatureOptions<T>["databaseHooks"][] = [];
 	for (const plugin of plugins) {
 		if (plugin.init) {
 			const result = plugin.init(ctx);
@@ -139,7 +139,7 @@ function runPluginInit(ctx: FeatureContext) {
 				if (result.context) {
 					context = {
 						...context,
-						...(result.context as Partial<FeatureContext>),
+						...(result.context as Partial<FeatureContext<T>>),
 					};
 				}
 			}
@@ -156,7 +156,7 @@ function runPluginInit(ctx: FeatureContext) {
 	return { context };
 }
 
-function getInternalPlugins(options: BetterFeatureOptions) {
+function getInternalPlugins<T = any>(options: BetterFeatureOptions<T>) {
 	const plugins: BetterFeaturePlugin[] = [];
 	if (options.advanced?.crossSubDomainCookies?.enabled) {
 		//TODO: add internal plugin
@@ -164,7 +164,7 @@ function getInternalPlugins(options: BetterFeatureOptions) {
 	return plugins;
 }
 
-function getTrustedOrigins(options: BetterFeatureOptions) {
+function getTrustedOrigins<T = any>(options: BetterFeatureOptions<T>) {
 	const baseURL = getBaseURL(options.baseURL, options.basePath);
 	if (!baseURL) {
 		return [];

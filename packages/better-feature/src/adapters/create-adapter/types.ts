@@ -369,6 +369,11 @@ export interface CustomAdapter {
 	 * Your adapter's options.
 	 */
 	options?: Record<string, any> | undefined;
+	/**
+	 * The database pool/client instance.
+	 * Provides access to the underlying database client for direct queries.
+	 */
+	pool?: any;
 }
 
 export type CleanedWhere = Prettify<Required<Where>>;

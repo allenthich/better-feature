@@ -17,7 +17,7 @@ export type AuthPluginSchema = {
 	};
 };
 
-export type BetterFeaturePlugin = {
+export type BetterFeaturePlugin<T = any> = {
 	id: LiteralString;
 	/**
 	 * The init function is called when the plugin is initialized.
@@ -52,16 +52,6 @@ export type BetterFeaturePlugin = {
 	) => Promise<{
 		response: Response;
 	} | void>;
-	hooks?: {
-		before?: {
-			matcher: (context: HookEndpointContext) => boolean;
-			handler: FeatureMiddleware;
-		}[];
-		after?: {
-			matcher: (context: HookEndpointContext) => boolean;
-			handler: FeatureMiddleware;
-		}[];
-	};
 	/**
 	 * Schema the plugin needs
 	 *
@@ -118,6 +108,10 @@ export type BetterFeaturePlugin = {
 	 * The error codes returned by the plugin
 	 */
 	$ERROR_CODES?: Record<string, string>;
+	/**
+	 * Template type for better typing support in endpoints
+	 */
+	$Template?: T;
 };
 
 export type InferOptionSchema<S extends AuthPluginSchema> = S extends Record<
@@ -137,7 +131,7 @@ export type InferOptionSchema<S extends AuthPluginSchema> = S extends Record<
 export type InferPluginErrorCodes<O extends BetterFeatureOptions> =
 	O["plugins"] extends Array<infer P>
 		? UnionToIntersection<
-				P extends BetterFeaturePlugin
+				P extends BetterFeaturePlugin<any>
 					? P["$ERROR_CODES"] extends Record<string, any>
 						? P["$ERROR_CODES"]
 						: {}
