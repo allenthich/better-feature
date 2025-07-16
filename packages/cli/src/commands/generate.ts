@@ -10,6 +10,7 @@ import fs from "fs/promises";
 import chalk from "chalk";
 import { getAdapter } from "better-feature/db";
 import { getGenerator } from "../generators";
+import { glob } from "glob";
 
 export async function generateAction(opts: any) {
 	const options = z
@@ -41,6 +42,83 @@ export async function generateAction(opts: any) {
 		logger.error(e.message);
 		process.exit(1);
 	});
+
+	// Handle Sequelize migrations from plugins first
+	if (adapter.id === "sequelize" && config.plugins) {
+		const migrationsToProcess: Array<{sourcePath: string, filename: string, pluginId: string}> = [];
+		
+		for (const plugin of config.plugins) {
+			if (!plugin.id) continue;
+			
+			logger.info(`Processing plugin: ${plugin.id}`);
+			
+			// Check if plugin provides migration paths
+			if (plugin.migrationPaths && plugin.migrationPaths.length > 0) {
+				for (const migrationPath of plugin.migrationPaths) {
+					if (existsSync(migrationPath)) {
+						const filename = path.basename(migrationPath);
+						// Only include files that match sequelize migration naming pattern
+						if (/^\d{14}-.*\.js$/.test(filename)) {
+							migrationsToProcess.push({
+								sourcePath: migrationPath,
+								filename,
+								pluginId: plugin.id
+							});
+						}
+					} else {
+						logger.warn(`Migration file not found: ${migrationPath} for plugin ${plugin.id}`);
+					}
+				}
+			} else {
+				logger.warn(`No migration paths provided by plugin ${plugin.id}`);
+			}
+		}
+		
+		if (migrationsToProcess.length > 0) {
+			const migrationsDir = path.join(cwd, "migrations");
+			
+			// Ensure migrations directory exists
+			if (!existsSync(migrationsDir)) {
+				await fs.mkdir(migrationsDir, { recursive: true });
+			}
+			
+			logger.info(`Found ${migrationsToProcess.length} plugin migration(s) to copy...`);
+			
+			for (const migration of migrationsToProcess) {
+				const targetPath = path.join(migrationsDir, migration.filename);
+				
+				// Check if migration already exists
+				if (existsSync(targetPath)) {
+					const sourceContent = await fs.readFile(migration.sourcePath, 'utf-8');
+					const targetContent = await fs.readFile(targetPath, 'utf-8');
+					
+					if (sourceContent === targetContent) {
+						logger.info(`✓ Migration ${migration.filename} from ${migration.pluginId} already up to date`);
+						continue;
+					}
+					
+					// Ask to overwrite
+					const response = await prompts({
+						type: "confirm",
+						name: "confirm",
+						message: `Migration ${migration.filename} from ${migration.pluginId} already exists. Overwrite?`,
+					});
+					
+					if (!response.confirm) {
+						logger.info(`Skipped ${migration.filename}`);
+						continue;
+					}
+				}
+				
+				// Copy the migration file
+				await fs.copyFile(migration.sourcePath, targetPath);
+				logger.success(`✓ Copied migration: ${migration.filename} from ${migration.pluginId}`);
+			}
+			
+			logger.success(`🚀 Plugin migrations copied successfully!`);
+			process.exit(0);
+		}
+	}
 
 	const spinner = yoctoSpinner({ text: "preparing schema..." }).start();
 

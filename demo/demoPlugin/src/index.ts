@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { DataTypes, Model, Sequelize } from "sequelize";
 
+import path from "path";
 export class User extends Model {
 	declare membershipId?: string;
 	declare membershipLevel?: string;
@@ -63,23 +64,9 @@ export const membershipLoginPlugin =
 
 		return {
 			id: "membership",
-
-			schema: {
-				test: {
-					fields: {
-						membershipId: { type: "string", required: true, unique: true },
-						membershipLevel: { type: "string", required: false },
-						password: {
-							type: "string",
-							required: true,
-							defaultValue: "'1234afsd'",
-						},
-						createdAt: { type: "date", defaultValue: "Sequelize.NOW" },
-						updatedAt: { type: "date", defaultValue: "Sequelize.NOW" },
-					},
-					modelName: "test",
-				},
-			},
+			migrationPaths: [
+				path.join(__dirname, 'migrations', '20240927084921-create-user.js'),
+			],
 
 			endpoints: {
 				login: createTypedEndpoint(

@@ -1,6 +1,7 @@
 import { createAdapter, type AdapterDebugLogs } from "../create-adapter";
 import { BetterFeatureError } from "../../error";
 import type { Where } from "../../types";
+import { Op } from "sequelize";
 
 export interface SequelizeConfig {
 	/**
@@ -31,16 +32,16 @@ export interface SequelizeConfig {
 
 interface SequelizeClient {
 	[key: string]: any;
-}
-
-interface SequelizeClientInternal {
-	[model: string]: {
-		create: (data: any) => Promise<any>;
-		findFirst: (data: any) => Promise<any>;
-		findMany: (data: any) => Promise<any>;
-		update: (data: any) => Promise<any>;
-		delete: (data: any) => Promise<any>;
-		[key: string]: any;
+	models: {
+		[model: string]: {
+			create: (data: any) => Promise<any>;
+			findOne: (data: any) => Promise<any>;
+			findAll: (data: any) => Promise<any>;
+			update: (values: any, options: any) => Promise<any>;
+			destroy: (options: any) => Promise<any>;
+			count: (options: any) => Promise<number>;
+			[key: string]: any;
+		};
 	};
 }
 
@@ -56,25 +57,36 @@ export const sequelizeAdapter = <T extends SequelizeClient = SequelizeClient>(
 			debugLogs: config.debugLogs ?? false,
 		},
 		adapter: ({ getFieldName }) => {
-			const db = sequelize as T & SequelizeClientInternal;
+			const db = sequelize as T & SequelizeClient;
 
 			const convertSelect = (select?: string[], model?: string) => {
 				if (!select || !model) return undefined;
-				return select.reduce((prev, cur) => {
-					return {
-						...prev,
-						[getFieldName({ model, field: cur })]: true,
-					};
-				}, {});
+				return select.map(field => getFieldName({ model, field }));
 			};
 			function operatorToSequelizeOperator(operator: string) {
 				switch (operator) {
 					case "starts_with":
-						return "startsWith";
+						return Op.startsWith;
 					case "ends_with":
-						return "endsWith";
+						return Op.endsWith;
+					case "contains":
+						return Op.like;
+					case "gt":
+						return Op.gt;
+					case "gte":
+						return Op.gte;
+					case "lt":
+						return Op.lt;
+					case "lte":
+						return Op.lte;
+					case "ne":
+						return Op.ne;
+					case "in":
+						return Op.in;
+					case "notIn":
+						return Op.notIn;
 					default:
-						return operator;
+						return Op.eq;
 				}
 			}
 			const convertWhereClause = (model: string, where?: Where[]) => {
@@ -82,7 +94,7 @@ export const sequelizeAdapter = <T extends SequelizeClient = SequelizeClient>(
 				if (where.length === 1) {
 					const w = where[0];
 					if (!w) {
-						return;
+						return {};
 					}
 					return {
 						[getFieldName({ model, field: w.field })]:
@@ -107,99 +119,123 @@ export const sequelizeAdapter = <T extends SequelizeClient = SequelizeClient>(
 				});
 				const orClause = or.map((w) => {
 					return {
-						[getFieldName({ model, field: w.field })]: {
-							[w.operator || "eq"]: w.value,
-						},
+						[getFieldName({ model, field: w.field })]:
+							w.operator === "eq" || !w.operator
+								? w.value
+								: {
+										[operatorToSequelizeOperator(w.operator)]: w.value,
+									},
 					};
 				});
 
 				return {
-					...(andClause.length ? { AND: andClause } : {}),
-					...(orClause.length ? { OR: orClause } : {}),
+					...(andClause.length > 1 ? { [Op.and]: andClause } : andClause[0] || {}),
+					...(orClause.length ? { [Op.or]: orClause } : {}),
 				};
 			};
 
 			return {
 				async create({ model, data: values, select }) {
-					if (!db[model]) {
+					if (!db.models[model]) {
 						throw new BetterFeatureError(
-							`Model ${model} does not exist in the database. If you haven't generated the Sequelize client, you need to run 'npx sequelize generate'`,
+							`Model ${model} does not exist in the database. Make sure the model is defined in your Sequelize instance.`,
 						);
 					}
-					return await db[model].create({
-						data: values,
-						select: convertSelect(select, model),
-					});
+					const createdRecord = await db.models[model].create(values);
+					
+					// If select is specified, fetch the record with only selected fields
+					if (select) {
+						const attributes = convertSelect(select, model);
+						return await db.models[model].findOne({
+							where: { id: createdRecord.id },
+							attributes
+						});
+					}
+					
+					return createdRecord;
 				},
 				async findOne({ model, where, select }) {
 					const whereClause = convertWhereClause(model, where);
-					if (!db[model]) {
+					if (!db.models[model]) {
 						throw new BetterFeatureError(
-							`Model ${model} does not exist in the database. If you haven't generated the Sequelize client, you need to run 'npx sequelize generate'`,
+							`Model ${model} does not exist in the database. Make sure the model is defined in your Sequelize instance.`,
 						);
 					}
-					return await db[model].findFirst({
-						where: whereClause,
-						select: convertSelect(select, model),
-					});
+					const options: any = { where: whereClause };
+					if (select) {
+						options.attributes = convertSelect(select, model);
+					}
+					return await db.models[model].findOne(options);
 				},
 				async findMany({ model, where, limit, offset, sortBy }) {
 					const whereClause = convertWhereClause(model, where);
-					if (!db[model]) {
+					if (!db.models[model]) {
 						throw new BetterFeatureError(
-							`Model ${model} does not exist in the database. If you haven't generated the Sequelize client, you need to run 'npx sequelize generate'`,
+							`Model ${model} does not exist in the database. Make sure the model is defined in your Sequelize instance.`,
 						);
 					}
 
-					return (await db[model].findMany({
+					const options: any = {
 						where: whereClause,
-						take: limit || 100,
-						skip: offset || 0,
-						...(sortBy?.field
-							? {
-									orderBy: {
-										[getFieldName({ model, field: sortBy.field })]:
-											sortBy.direction === "desc" ? "desc" : "asc",
-									},
-								}
-							: {}),
-					})) as any[];
+						limit: limit || 100,
+						offset: offset || 0,
+					};
+
+					if (sortBy?.field) {
+						options.order = [[
+							getFieldName({ model, field: sortBy.field }),
+							sortBy.direction === "desc" ? "DESC" : "ASC"
+						]];
+					}
+
+					return await db.models[model].findAll(options) as any[];
 				},
 				async count({ model, where }) {
 					const whereClause = convertWhereClause(model, where);
-					if (!db[model]) {
+					if (!db.models[model]) {
 						throw new BetterFeatureError(
-							`Model ${model} does not exist in the database. If you haven't generated the Sequelize client, you need to run 'npx sequelize generate'`,
+							`Model ${model} does not exist in the database. Make sure the model is defined in your Sequelize instance.`,
 						);
 					}
-					return await db[model].count({
+					return await db.models[model].count({
 						where: whereClause,
 					});
 				},
 				async update({ model, where, update }) {
-					if (!db[model]) {
+					if (!db.models[model]) {
 						throw new BetterFeatureError(
-							`Model ${model} does not exist in the database. If you haven't generated the Sequelize client, you need to run 'npx sequelize generate'`,
+							`Model ${model} does not exist in the database. Make sure the model is defined in your Sequelize instance.`,
 						);
 					}
 					const whereClause = convertWhereClause(model, where);
-					return await db[model].update({
-						where: whereClause,
-						data: update,
-					});
+					const [affectedCount, affectedRows] = await db.models[model].update(
+						update,
+						{ where: whereClause, returning: true }
+					);
+					return affectedRows[0] || null;
 				},
 				async updateMany({ model, where, update }) {
 					const whereClause = convertWhereClause(model, where);
-					const result = await db[model].updateMany({
-						where: whereClause,
-						data: update,
-					});
-					return result ? (result.count as number) : 0;
+					if (!db.models[model]) {
+						throw new BetterFeatureError(
+							`Model ${model} does not exist in the database. Make sure the model is defined in your Sequelize instance.`,
+						);
+					}
+					const [affectedCount] = await db.models[model].update(
+						update,
+						{ where: whereClause }
+					);
+					return affectedCount;
 				},
 				async delete({ model, where }) {
 					const whereClause = convertWhereClause(model, where);
+					if (!db.models[model]) {
+						throw new BetterFeatureError(
+							`Model ${model} does not exist in the database. Make sure the model is defined in your Sequelize instance.`,
+						);
+					}
 					try {
-						await db[model].delete({
+						await db.models[model].destroy({
 							where: whereClause,
 						});
 					} catch (e) {
@@ -208,10 +244,15 @@ export const sequelizeAdapter = <T extends SequelizeClient = SequelizeClient>(
 				},
 				async deleteMany({ model, where }) {
 					const whereClause = convertWhereClause(model, where);
-					const result = await db[model].deleteMany({
+					if (!db.models[model]) {
+						throw new BetterFeatureError(
+							`Model ${model} does not exist in the database. Make sure the model is defined in your Sequelize instance.`,
+						);
+					}
+					const deletedCount = await db.models[model].destroy({
 						where: whereClause,
 					});
-					return result ? (result.count as number) : 0;
+					return deletedCount;
 				},
 				options: config,
 				pool: sequelize as T,

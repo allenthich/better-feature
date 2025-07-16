@@ -392,13 +392,13 @@ export async function generateAuthConfig({
 				});
 			} else if (opts.database === "sequelize:mysql") {
 				await add_db({
-					db_code: `sequelizeAdapter(client, {\nprovider: "${opts.database.replace(
+					db_code: `sequelizeAdapter(sequelize, {\nprovider: "${opts.database.replace(
 						"sequelize:",
 						"",
 					)}",\n})`,
-					dependencies: [`@sequelize/client`],
+					dependencies: [`sequelize`],
 					envs: [],
-					code_before_betterAuth: "const client = new SequelizeClient();",
+					code_before_betterAuth: "const sequelize = new Sequelize(/* Add your database configuration here */);",
 					imports: [
 						{
 							path: "better-feature/adapters/sequelize",
@@ -409,10 +409,10 @@ export async function generateAuthConfig({
 							],
 						},
 						{
-							path: "@sequelize/client",
+							path: "sequelize",
 							variables: [
 								{
-									name: "SequelizeClient",
+									name: "Sequelize",
 								},
 							],
 						},

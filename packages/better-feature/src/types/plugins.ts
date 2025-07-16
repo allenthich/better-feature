@@ -89,6 +89,19 @@ export type BetterFeaturePlugin<T = any> = {
 	 */
 	migrations?: Record<string, Migration>;
 	/**
+	 * Paths to migration files for Sequelize/raw SQL migrations.
+	 * The CLI will copy these files to the app's migrations directory.
+	 * 
+	 * @example
+	 * ```ts
+	 * migrationPaths: [
+	 *   path.join(__dirname, 'migrations', '20240101000000-create-users.js'),
+	 *   path.join(__dirname, 'migrations', '20240102000000-add-columns.js'),
+	 * ]
+	 * ```
+	 */
+	migrationPaths?: string[];
+	/**
 	 * The options of the plugin
 	 */
 	options?: Record<string, any>;
