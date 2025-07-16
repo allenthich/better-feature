@@ -32,17 +32,9 @@ const db = sequelize as Sequelize & {
 	};
 };
 
-// Type definition for our database with models
-type TypedDatabase = Sequelize & {
-	models: {
-		User: typeof User;
-		Rock: typeof User;
-	};
-};
-
 export const feature = betterFeature<
-	BetterFeatureOptions<TypedDatabase>,
-	TypedDatabase
+	BetterFeatureOptions<typeof db>,
+	typeof db
 >({
 	basePath: "/api",
 	database: sequelizeAdapter(sequelize, {

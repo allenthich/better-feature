@@ -3,12 +3,10 @@
 	"version": "0.1.0",
 	"private": true,
 	"scripts": {
-		"dev": "tsx --watch --tsconfig tsconfig.json --env-file=.env server.ts",
-		"dev:secure": "next dev --experimental-https",
+		"dev": "tsc --watch",
 		"typecheck": "tsc --noEmit",
-		"build": "next build",
-		"start": "next start",
-		"lint": "next lint"
+		"build": "tsc",
+		"lint": "biome check"
 	},
 	"dependencies": {
 		"@better-fetch/fetch": "catalog:",

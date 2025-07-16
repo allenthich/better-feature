@@ -14,16 +14,6 @@ import type { LiteralUnion, OmitId } from "./helper";
 import { Sequelize } from "sequelize";
 
 export type BetterFeatureOptions<T = any> = {
-	context?: {
-		pool:
-			| Sequelize
-			| MysqlPool
-			| PostgresPool
-			| Database
-			| Kysely<any>
-			| Dialect
-			| AdapterInstance;
-	};
 	/**
 	 * The name of the application
 	 *
