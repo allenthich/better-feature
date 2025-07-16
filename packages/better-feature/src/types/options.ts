@@ -99,6 +99,22 @@ export type BetterFeatureOptions<T = any> = {
 				 * @default "camel"
 				 */
 				casing?: "snake" | "camel";
+		  }
+		| {
+				/**
+				 * Sequelize instance
+				 */
+				sequelize: Sequelize;
+				/**
+				 * Database provider for Sequelize
+				 */
+				provider: "sqlite" | "cockroachdb" | "mysql" | "postgresql" | "sqlserver" | "mongodb";
+				/**
+				 * Use plural table names
+				 *
+				 * @default false
+				 */
+				usePlural?: boolean;
 		  };
 	/**
 	 * Secondary storage configuration
