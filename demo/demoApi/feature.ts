@@ -17,6 +17,8 @@ import {
 	membershipLoginPlugin,
 } from "../demoPlugin/src/index";
 
+import { myNewPlugin, defineNewPluginModel } from "../myplugin/src/index"; // Import the new plugin
+
 // change the dabase, user, password, host, port as needed
 export const sequelize = new Sequelize("better_auth_test", "root", "toor", {
 	host: "localhost",
@@ -40,7 +42,7 @@ export const feature = betterFeature<
 	database: sequelizeAdapter(sequelize, {
 		provider: "mysql",
 	}),
-	plugins: [membershipLoginPlugin()],
+	plugins: [membershipLoginPlugin(), myNewPlugin()],
 	databaseHooks: {
 		user: {
 			create: {
