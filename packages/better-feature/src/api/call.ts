@@ -29,5 +29,17 @@ export const createFeatureEndpoint = createEndpoint.create({
 	use: [optionsMiddleware],
 });
 
+export const createTypedFeatureEndpoint = <T = any>() => {
+	const typedOptionsMiddleware = createMiddleware(async () => {
+		return {} as FeatureContext<T>;
+	});
+	
+	return createEndpoint.create({
+		use: [typedOptionsMiddleware],
+	});
+};
+
+export const createPluginEndpoint = <T = any>() => createTypedFeatureEndpoint<T>();
+
 export type FeatureEndpoint = ReturnType<typeof createFeatureEndpoint>;
 export type FeatureMiddleware = ReturnType<typeof createFeatureMiddleware>;

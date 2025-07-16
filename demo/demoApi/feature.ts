@@ -16,7 +16,6 @@ import {
 	defineUserModel,
 	membershipLoginPlugin,
 } from "../demoPlugin/src/index";
-import Database from "better-sqlite3";
 
 // change the dabase, user, password, host, port as needed
 export const sequelize = new Sequelize("better_auth_test", "root", "toor", {
@@ -46,7 +45,9 @@ export const feature = betterFeature<
 	TypedDatabase
 >({
 	basePath: "/api",
-	database: new Database("./sqlite.db"),
+	database: sequelizeAdapter(sequelize, {
+		provider: "mysql",
+	}),
 	plugins: [membershipLoginPlugin()],
 	databaseHooks: {
 		user: {
@@ -108,9 +109,6 @@ export const feature = betterFeature<
 	logger: {
 		level: "debug",
 		disabled: false,
-	},
-	context: {
-		pool: db,
 	},
 	onAPIError: {
 		throw: true,

@@ -131,6 +131,5 @@ export const tester = (options?: TesterPluginOptions) => {
 			),
 		},
 		schema: mergeSchema(testerSchema, options?.schema),
-		hooks: {},
 	} satisfies BetterFeaturePlugin;
 };
