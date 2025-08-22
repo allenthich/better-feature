@@ -10,11 +10,6 @@ import type {
 } from "./types";
 import { createDynamicPathProxy } from "./proxy";
 import type { PrettifyDeep, UnionToIntersection } from "../types/helper";
-import type { Atom } from "nanostores";
-import type {
-	BetterFetchError,
-	BetterFetchResponse,
-} from "@better-fetch/fetch";
 import type { BASE_ERROR_CODES } from "../error/codes";
 
 type InferResolvedHooks<O extends ClientOptions> = O["plugins"] extends Array<
@@ -64,27 +59,13 @@ export function createFeatureClient<Option extends ClientOptions>(
 		atomListeners,
 	);
 	type ClientAPI = InferClientAPI<Option>;
-	type Session = ClientAPI extends {
-		getSession: () => Promise<infer Res>;
-	}
-		? Res extends BetterFetchResponse<infer S>
-			? S
-			: Res extends Record<string, any>
-				? Res
-				: never
-		: never;
+
 	return proxy as UnionToIntersection<InferResolvedHooks<Option>> &
 		ClientAPI &
 		InferActions<Option> & {
-			useSession: Atom<{
-				data: Session;
-				error: BetterFetchError | null;
-				isPending: boolean;
-			}>;
 			$fetch: typeof $fetch;
 			$store: typeof $store;
 			$Infer: {
-				Session: NonNullable<Session>;
 			};
 			$ERROR_CODES: PrettifyDeep<
 				InferErrorCodes<Option> & typeof BASE_ERROR_CODES
