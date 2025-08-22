@@ -5,7 +5,7 @@ import {
 } from "@better-fetch/fetch";
 import { atom, onMount, type PreinitializedWritableAtom } from "nanostores";
 
-export const useAuthQuery = <T>(
+export const useFeatureQuery = <T>(
 	initializedAtom:
 		| PreinitializedWritableAtom<any>
 		| PreinitializedWritableAtom<any>[],

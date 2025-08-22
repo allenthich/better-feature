@@ -1,7 +1,7 @@
 import { atom } from "nanostores";
 import type { tester } from ".";
 import type { BetterFeatureClientPlugin } from "../../client/types";
-import { useAuthQuery } from "../../client";
+import { useFeatureQuery } from "../../client";
 import type { Tester } from "./schema";
 
 export const testerClient = () => {
@@ -10,7 +10,7 @@ export const testerClient = () => {
 		id: "tester",
 		$InferServerPlugin: {} as ReturnType<typeof tester>,
 		getAtoms: ($fetch) => {
-			const listTesters = useAuthQuery<Tester[]>(
+			const listTesters = useFeatureQuery<Tester[]>(
 				$listTestersSignal,
 				"/tester/list",
 				$fetch,

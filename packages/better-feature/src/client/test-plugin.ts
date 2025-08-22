@@ -2,7 +2,7 @@ import { atom, computed } from "nanostores";
 import type { BetterFeatureClientPlugin } from "./types";
 import type { BetterFeaturePlugin } from "../types/plugins";
 import { createFeatureEndpoint } from "../api/call";
-import { useAuthQuery } from "./query";
+import { useFeatureQuery } from "./query";
 
 const serverPlugin = {
 	id: "test",
@@ -72,7 +72,7 @@ export const testClientPlugin = () => {
 		},
 		getAtoms($fetch) {
 			const $signal = atom(false);
-			const queryAtom = useAuthQuery<any>($signal, "/test", $fetch, {
+			const queryAtom = useFeatureQuery<any>($signal, "/test", $fetch, {
 				method: "GET",
 			});
 			return {
