@@ -12,7 +12,7 @@ import type { Logger } from "../utils";
 import type { FeatureMiddleware } from "../plugins";
 import type { LiteralUnion, OmitId } from "./helper";
 
-export type BetterFeatureOptions = {
+export type BetterFeatureOptions<TDatabase = any> = {
 	/**
 	 * The name of the application
 	 *
@@ -67,38 +67,40 @@ export type BetterFeatureOptions = {
 	/**
 	 * Database configuration
 	 */
-	database?:
-		| PostgresPool
-		| MysqlPool
-		| Database
-		| Dialect
-		| AdapterInstance
-		| {
-				dialect: Dialect;
-				type: KyselyDatabaseType;
-				/**
-				 * casing for table names
-				 *
-				 * @default "camel"
-				 */
-				casing?: "snake" | "camel";
-		  }
-		| {
-				/**
-				 * Kysely instance
-				 */
-				db: Kysely<any>;
-				/**
-				 * Database type between postgres, mysql and sqlite
-				 */
-				type: KyselyDatabaseType;
-				/**
-				 * casing for table names
-				 *
-				 * @default "camel"
-				 */
-				casing?: "snake" | "camel";
-		  };
+	database?: TDatabase extends never
+		?
+				| PostgresPool
+				| MysqlPool
+				| Database
+				| Dialect
+				| AdapterInstance
+				| {
+						dialect: Dialect;
+						type: KyselyDatabaseType;
+						/**
+						 * casing for table names
+						 *
+						 * @default "camel"
+						 */
+						casing?: "snake" | "camel";
+				  }
+				| {
+						/**
+						 * Kysely instance
+						 */
+						db: Kysely<any>;
+						/**
+						 * Database type between postgres, mysql and sqlite
+						 */
+						type: KyselyDatabaseType;
+						/**
+						 * casing for table names
+						 *
+						 * @default "camel"
+						 */
+						casing?: "snake" | "camel";
+				  }
+		: TDatabase;
 	/**
 	 * Secondary storage configuration
 	 *
@@ -335,21 +337,21 @@ export type BetterFeatureOptions = {
 			create?: {
 				before?: (
 					data: Record<string, any>,
-					ctx?: GenericEndpointContext,
+					ctx?: GenericEndpointContext<TDatabase>,
 				) => void | Promise<any>;
 				after?: (
 					data: Record<string, any>,
-					ctx?: GenericEndpointContext,
+					ctx?: GenericEndpointContext<TDatabase>,
 				) => void | Promise<any>;
 			};
 			update?: {
 				before?: (
 					data: Record<string, any>,
-					ctx?: GenericEndpointContext,
+					ctx?: GenericEndpointContext<TDatabase>,
 				) => void | Promise<any>;
 				after?: (
 					data: Record<string, any>,
-					ctx?: GenericEndpointContext,
+					ctx?: GenericEndpointContext<TDatabase>,
 				) => void | Promise<any>;
 			};
 		};

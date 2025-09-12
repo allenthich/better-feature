@@ -24,8 +24,8 @@ export type BetterFeatureDbSchema = Record<
 	}
 >;
 
-export const getFeatureTables = (
-	options: BetterFeatureOptions,
+export const getFeatureTables = <TDatabase = any>(
+	options: BetterFeatureOptions<TDatabase>,
 ): BetterFeatureDbSchema => {
 	const pluginSchema = options.plugins?.reduce(
 		(acc, plugin) => {

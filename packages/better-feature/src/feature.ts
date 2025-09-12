@@ -14,10 +14,13 @@ import { BetterFeatureError } from "./error";
 
 export type WithJsDoc<T, D> = Expand<T & D>;
 
-export const betterFeature = <O extends BetterFeatureOptions>(
+export const betterFeature = <
+	TDatabase = any,
+	O extends BetterFeatureOptions<TDatabase> = BetterFeatureOptions<TDatabase>,
+>(
 	options: O & Record<never, never>,
 ) => {
-	const featureContext = init(options as O);
+	const featureContext = init<TDatabase>(options as O);
 	const { api } = getEndpoints(featureContext, options as O);
 	const errorCodes = options.plugins?.reduce((acc, plugin) => {
 		if (plugin.$ERROR_CODES) {
@@ -65,10 +68,10 @@ export const betterFeature = <O extends BetterFeatureOptions>(
 	};
 };
 
-export type Feature = {
+export type Feature<TDatabase = any> = {
 	handler: (request: Request) => Promise<Response>;
 	api: FilterActions<ReturnType<typeof router>["endpoints"]>;
-	options: BetterFeatureOptions;
+	options: BetterFeatureOptions<TDatabase>;
 	$ERROR_CODES: typeof BASE_ERROR_CODES;
-	$context: Promise<FeatureContext>;
+	$context: Promise<FeatureContext<TDatabase>>;
 };

@@ -17,15 +17,15 @@ export type AuthPluginSchema = {
 	};
 };
 
-export type BetterFeaturePlugin = {
+export type BetterFeaturePlugin<TDatabase = any> = {
 	id: LiteralString;
 	/**
 	 * The init function is called when the plugin is initialized.
 	 * You can return a new context or modify the existing context.
 	 */
-	init?: (ctx: FeatureContext) => {
-		context?: DeepPartial<Omit<FeatureContext, "options">>;
-		options?: Partial<BetterFeatureOptions>;
+	init?: (ctx: FeatureContext<TDatabase>) => {
+		context?: DeepPartial<Omit<FeatureContext<TDatabase>, "options">>;
+		options?: Partial<BetterFeatureOptions<TDatabase>>;
 	} | void;
 	endpoints?: {
 		[key: string]: Endpoint;
@@ -36,7 +36,7 @@ export type BetterFeaturePlugin = {
 	}[];
 	onRequest?: (
 		request: Request,
-		ctx: FeatureContext,
+		ctx: FeatureContext<TDatabase>,
 	) => Promise<
 		| {
 				response: Response;
@@ -48,17 +48,17 @@ export type BetterFeaturePlugin = {
 	>;
 	onResponse?: (
 		response: Response,
-		ctx: FeatureContext,
+		ctx: FeatureContext<TDatabase>,
 	) => Promise<{
 		response: Response;
 	} | void>;
 	hooks?: {
 		before?: {
-			matcher: (context: HookEndpointContext) => boolean;
+			matcher: (context: HookEndpointContext<TDatabase>) => boolean;
 			handler: FeatureMiddleware;
 		}[];
 		after?: {
-			matcher: (context: HookEndpointContext) => boolean;
+			matcher: (context: HookEndpointContext<TDatabase>) => boolean;
 			handler: FeatureMiddleware;
 		}[];
 	};
@@ -134,10 +134,10 @@ export type InferOptionSchema<S extends AuthPluginSchema> = S extends Record<
 		}
 	: never;
 
-export type InferPluginErrorCodes<O extends BetterFeatureOptions> =
+export type InferPluginErrorCodes<O extends BetterFeatureOptions<any>> =
 	O["plugins"] extends Array<infer P>
 		? UnionToIntersection<
-				P extends BetterFeaturePlugin
+				P extends BetterFeaturePlugin<any>
 					? P["$ERROR_CODES"] extends Record<string, any>
 						? P["$ERROR_CODES"]
 						: {}

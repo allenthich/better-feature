@@ -16,10 +16,12 @@ import { getBaseURL } from "./utils/url";
 import type { LiteralUnion } from "./types/helper";
 import { BetterFeatureError } from "./error";
 
-export const init = async (options: BetterFeatureOptions) => {
+export const init = async <TDatabase = any>(
+	options: BetterFeatureOptions<TDatabase>,
+) => {
 	const adapter = await getAdapter(options);
 	const plugins = options.plugins || [];
-	const internalPlugins = getInternalPlugins(options);
+	const internalPlugins = getInternalPlugins<TDatabase>(options);
 	const logger = createLogger(options.logger);
 
 	const baseURL = getBaseURL(options.baseURL, options.basePath);
@@ -46,7 +48,10 @@ export const init = async (options: BetterFeatureOptions) => {
 		plugins: plugins.concat(internalPlugins),
 	};
 	const tables = getFeatureTables(options);
-	const generateIdFunc: FeatureContext["generateId"] = ({ model, size }) => {
+	const generateIdFunc: FeatureContext<TDatabase>["generateId"] = ({
+		model,
+		size,
+	}) => {
 		if (typeof options.advanced?.generateId === "function") {
 			return options.advanced.generateId({ model, size });
 		}
@@ -56,11 +61,11 @@ export const init = async (options: BetterFeatureOptions) => {
 		return generateId(size);
 	};
 
-	const ctx: FeatureContext = {
+	const ctx: FeatureContext<TDatabase> = {
 		appName: options.appName || "Better Feature",
 		options,
 		tables,
-		trustedOrigins: getTrustedOrigins(options),
+		trustedOrigins: getTrustedOrigins<TDatabase>(options),
 		baseURL: baseURL || "",
 		secret,
 		rateLimit: {
@@ -83,7 +88,12 @@ export const init = async (options: BetterFeatureOptions) => {
 		}),
 		async runMigrations() {
 			//only run migrations if database is provided and it's not an adapter
-			if (!options.database || "updateMany" in options.database) {
+			if (
+				!options.database ||
+				(typeof options.database === "object" &&
+					options.database !== null &&
+					"updateMany" in options.database)
+			) {
 				throw new BetterFeatureError(
 					"Database is not provided or it's an adapter. Migrations are only supported with a database instance.",
 				);
@@ -92,12 +102,12 @@ export const init = async (options: BetterFeatureOptions) => {
 			await runMigrations();
 		},
 	};
-	let { context } = runPluginInit(ctx);
+	let { context } = runPluginInit<TDatabase>(ctx);
 	return context;
 };
 
-export type FeatureContext = {
-	options: BetterFeatureOptions;
+export type FeatureContext<TDatabase = any> = {
+	options: BetterFeatureOptions<TDatabase>;
 	appName: string;
 	baseURL: string;
 	trustedOrigins: string[];
@@ -107,7 +117,7 @@ export type FeatureContext = {
 		window: number;
 		max: number;
 		storage: "memory" | "database" | "secondary-storage";
-	} & BetterFeatureOptions["rateLimit"];
+	} & BetterFeatureOptions<TDatabase>["rateLimit"];
 	adapter: Adapter;
 	internalAdapter: ReturnType<typeof createInternalAdapter>;
 	secret: string;
@@ -120,11 +130,11 @@ export type FeatureContext = {
 	runMigrations: () => Promise<void>;
 };
 
-function runPluginInit(ctx: FeatureContext) {
+function runPluginInit<TDatabase = any>(ctx: FeatureContext<TDatabase>) {
 	let options = ctx.options;
 	const plugins = options.plugins || [];
-	let context: FeatureContext = ctx;
-	const dbHooks: BetterFeatureOptions["databaseHooks"][] = [];
+	let context: FeatureContext<TDatabase> = ctx;
+	const dbHooks: BetterFeatureOptions<TDatabase>["databaseHooks"][] = [];
 	for (const plugin of plugins) {
 		if (plugin.init) {
 			const result = plugin.init(ctx);
@@ -139,7 +149,7 @@ function runPluginInit(ctx: FeatureContext) {
 				if (result.context) {
 					context = {
 						...context,
-						...(result.context as Partial<FeatureContext>),
+						...(result.context as Partial<FeatureContext<TDatabase>>),
 					};
 				}
 			}
@@ -156,15 +166,19 @@ function runPluginInit(ctx: FeatureContext) {
 	return { context };
 }
 
-function getInternalPlugins(options: BetterFeatureOptions) {
-	const plugins: BetterFeaturePlugin[] = [];
+function getInternalPlugins<TDatabase = any>(
+	options: BetterFeatureOptions<TDatabase>,
+) {
+	const plugins: BetterFeaturePlugin<TDatabase>[] = [];
 	if (options.advanced?.crossSubDomainCookies?.enabled) {
 		//TODO: add internal plugin
 	}
 	return plugins;
 }
 
-function getTrustedOrigins(options: BetterFeatureOptions) {
+function getTrustedOrigins<TDatabase = any>(
+	options: BetterFeatureOptions<TDatabase>,
+) {
 	const baseURL = getBaseURL(options.baseURL, options.basePath);
 	if (!baseURL) {
 		return [];

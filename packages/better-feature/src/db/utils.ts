@@ -1,13 +1,13 @@
 import { getFeatureTables, type FieldAttribute } from ".";
 import { BetterFeatureError } from "../error";
-import type { Adapter, BetterFeatureOptions } from "../types";
+import type { Adapter, BetterFeatureOptions, AdapterInstance } from "../types";
 import { createKyselyAdapter } from "../adapters/kysely-adapter/dialect";
 import { kyselyAdapter } from "../adapters/kysely-adapter";
 import { memoryAdapter } from "../adapters/memory-adapter";
 import { logger } from "../utils";
 
-export async function getAdapter(
-	options: BetterFeatureOptions,
+export async function getAdapter<TDatabase = any>(
+	options: BetterFeatureOptions<TDatabase>,
 ): Promise<Adapter> {
 	if (!options.database) {
 		const tables = getFeatureTables(options);
@@ -23,7 +23,7 @@ export async function getAdapter(
 	}
 
 	if (typeof options.database === "function") {
-		return options.database(options);
+		return (options.database as AdapterInstance)(options);
 	}
 
 	const { kysely, databaseType } = await createKyselyAdapter(options);
